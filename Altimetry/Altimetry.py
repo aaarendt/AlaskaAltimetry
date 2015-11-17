@@ -1,4 +1,3 @@
-#comment
 import psycopg2
 import ppygis
 import scipy.stats.mstats as mstats
@@ -25,8 +24,17 @@ from itertools import product as iterproduct
 import sys
 import StringIO
 from types import *
-import __init__ as init
-     
+#import __init__ as init
+import settings as s
+from base64 import b64decode as readpassword
+    
+def test(a):
+
+   if a == 1:
+     return "test 1"
+   else:
+     return "test 2"
+ 
 def ConnectDb(server=None, get_host=None, get_user=None, get_dbname=None, verbose=False):
     """====================================================================================================
 Altimetry.Altimetry.ConnectDb
@@ -58,10 +66,9 @@ KEYWORD ARGUMENTS:
 
     if server == None:server='defaulthost'
 
-    import __init__ as init
-    serv = getattr(init,server)
+    serv = getattr(s,server)
 
-    st = "dbname='%s' host='%s' user='%s' password='%s'" % (serv['dbname'],serv['host'],serv['user'],serv['password'])
+    st = "dbname='%s' host='%s' user='%s' password='%s'" % (serv['dbname'],serv['host'],serv['user'],readpassword(serv['password']))
 
     if get_host != None and get_user == None and get_dbname == None: return serv['host']
     if get_host == None and get_user != None and get_dbname == None: return serv['user']
@@ -1941,7 +1948,6 @@ def destable(table):
         out.append(a[last:])
         return "\n                |                 |  ".join(out)
         
-    table = 'lamb'
     oid=GetSqlData2("""SELECT c.oid
     FROM pg_catalog.pg_class c
         LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
