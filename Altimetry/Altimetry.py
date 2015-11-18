@@ -188,9 +188,9 @@ RETURNS:
     else:
         return Z, 2 * distributions.norm.sf(N.abs(Z))
  
-def GetSqlData2(select,bycolumn=True):
+def GetSqlData(select,bycolumn=True):
     """====================================================================================================
-Altimetry.Altimetry.GetSqlData2
+Altimetry.Altimetry.GetSqlData
 
 Evan Burgess 2013-08-22
 ====================================================================================================
@@ -208,7 +208,7 @@ Returns:
         outer ring and another list of inner rings (which is another list of coordinates).  Data is stored in the 
         dictionary as keys 'inner' and 'outer'.  If there are no inner rings, None is returned.
                
-GetSqlData2(select,bycolumn = False):   
+GetSqlData(select,bycolumn = False):   
 
 ARGUMENTS:        
     select              Any postgresql select statement as string including ';'  This should be robust but
@@ -447,7 +447,7 @@ KEYWORD ARGUMENTS:
     #MAKING THE SELECT QUERY
     select = "SELECT %s %s %s %s %s;" % (distinct,",".join(fields),' '.join(tables),' AND '.join(wheres),",".join(orderby_init))
     if verbose:print select
-    s = GetSqlData2(select,bycolumn=False)
+    s = GetSqlData(select,bycolumn=False)
     
     #IF NO DATA WAS RETURNED, END AND RETURNED NONE
     if type(s)==NoneType: return None
@@ -486,7 +486,7 @@ KEYWORD ARGUMENTS:
         
         if get_hypsometry:
             for i in s:
-                hyps = GetSqlData2("SELECT area::real as binned_area,bins::real,normbins::real FROM ergibins WHERE ergiid='%s' ORDER BY normbins" % i['ergiid'])
+                hyps = GetSqlData("SELECT area::real as binned_area,bins::real,normbins::real FROM ergibins WHERE ergiid='%s' ORDER BY normbins" % i['ergiid'])
                 for key in ('binned_area','bins','normbins'):i[key]=hyps[key]
 
         if by_column:s = LambToColumn(s)
@@ -494,14 +494,14 @@ KEYWORD ARGUMENTS:
         if not re.search("^\s*ORDER BY",orderby[0], re.IGNORECASE): orderby[0]="ORDER BY %s" % orderby[0]
         print "NOTE: Choosing orderby lengthens the querytime of GetLambData"
         lambids = [str(i['lambid']) for i in s]
-        s = GetSqlData2("SELECT %s %s WHERE lamb.lambid IN ('%s') %s;" % (",".join(fields),' '.join(tables),"','".join(lambids),",".join(orderby)), bycolumn=by_column)
+        s = GetSqlData("SELECT %s %s WHERE lamb.lambid IN ('%s') %s;" % (",".join(fields),' '.join(tables),"','".join(lambids),",".join(orderby)), bycolumn=by_column)
         
         if get_hypsometry:
             s['binned_area'] = []
             s['bins'] = []
             s['normbins'] = []
             for ergiidt in s['ergiid']:
-                hyps = GetSqlData2("SELECT area::real as binned_area,bins::real,normbins::real FROM ergibins WHERE ergiid='%s' ORDER BY normbins" % ergiidt)
+                hyps = GetSqlData("SELECT area::real as binned_area,bins::real,normbins::real FROM ergibins WHERE ergiid='%s' ORDER BY normbins" % ergiidt)
                 s['binned_area'].append(hyps['binned_area'])
                 s['bins'].append(hyps['bins'])
                 s['normbins'].append(hyps['normbins'])
@@ -915,7 +915,7 @@ returned rather the output coordinates are added as attributes to the object:
         
         for k,gid in enumerate(self.gid):
             print k
-            xpts=GetSqlData2("SELECT z1,geog from xpts WHERE lambid=%s" % gid)
+            xpts=GetSqlData("SELECT z1,geog from xpts WHERE lambid=%s" % gid)
             
             print 'len xpts',len(xpts['z1'])
             
@@ -1311,7 +1311,7 @@ KEYWORD ARGUMENTS:
 
 def coords_to_polykml (outputfile, inpt,inner=None, name=None,setcolors=None):
     """Outputs polygons to a kml. Warning this isn't super robust.  But here you can enter an 
-output filepath and an input geometry that would be returned by GetSqlData2. Sspefically it will
+output filepath and an input geometry that would be returned by GetSqlData. Sspefically it will
 take geometries as dictionariers with 'outer' and 'inner' keys to include the 
 outer ring and the inner rings.  This also allows you to set the polygon color.  You can 
 set setcolors='random' and it will make each polygon a random color instead of the same color. 
@@ -1619,10 +1619,10 @@ EXAMPLE USE WITH GetLambData AND partition_dataset:
     start_time = time.time()
     out = {}
     #GETTING STATS TO OUTPUT
-    out['bysurveyed'] =    GetSqlData2("SELECT surveyed,         SUM(area)/1e6::real as area,SUM(mean*area)/1e9*%5.3f::real as totalGt,SUM(mean*area)/SUM(area)*%5.3f::real as totalkgm2,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/1e9*%5.3f)^2 + (%5.3f)^2)^0.5::real as errGt,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/SUM(area)*%5.3f)^2+(%5.3f)^2)^0.5::real as errkgm2 FROM %s GROUP BY surveyed;" %         (density,density,density_err,density,density, acrossgl_err,density_err,density,density,acrossgl_err,tablename))
-    out['bytype_survey'] = GetSqlData2("SELECT gltype, surveyed, SUM(area)/1e6::real as area,SUM(mean*area)/1e9*%5.3f::real as totalGt,SUM(mean*area)/SUM(area)*%5.3f::real as totalkgm2,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/1e9*%5.3f)^2 + (%5.3f)^2)^0.5::real as errGt,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/SUM(area)*%5.3f)^2+(%5.3f)^2)^0.5::real as errkgm2 FROM %s GROUP BY gltype,surveyed;" % (density,density,density_err,density,density, acrossgl_err,density_err,density,density,acrossgl_err,tablename))
-    out['bytype'] =        GetSqlData2("SELECT gltype,           SUM(area)/1e6::real as area,SUM(mean*area)/1e9*%5.3f::real as totalGt,SUM(mean*area)/SUM(area)*%5.3f::real as totalkgm2,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/1e9*%5.3f)^2 + (%5.3f)^2)^0.5::real as errGt,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/SUM(area)*%5.3f)^2+(%5.3f)^2)^0.5::real as errkgm2 FROM %s GROUP BY gltype;" %          (density,density,density_err,density,density, acrossgl_err,density_err,density,density,acrossgl_err,tablename))
-    out['all'] =           GetSqlData2("SELECT                   SUM(area)/1e6::real as area,SUM(mean*area)/1e9*%5.3f::real as totalGt,SUM(mean*area)/SUM(area)*%5.3f::real as totalkgm2,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/1e9*%5.3f)^2 + (%5.3f)^2)^0.5::real as errGt,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/SUM(area)*%5.3f)^2+(%5.3f)^2)^0.5::real as errkgm2 FROM %s;" %                          (density,density,density_err,density,density, acrossgl_err,density_err,density,density,acrossgl_err,tablename))
+    out['bysurveyed'] =    GetSqlData("SELECT surveyed,         SUM(area)/1e6::real as area,SUM(mean*area)/1e9*%5.3f::real as totalGt,SUM(mean*area)/SUM(area)*%5.3f::real as totalkgm2,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/1e9*%5.3f)^2 + (%5.3f)^2)^0.5::real as errGt,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/SUM(area)*%5.3f)^2+(%5.3f)^2)^0.5::real as errkgm2 FROM %s GROUP BY surveyed;" %         (density,density,density_err,density,density, acrossgl_err,density_err,density,density,acrossgl_err,tablename))
+    out['bytype_survey'] = GetSqlData("SELECT gltype, surveyed, SUM(area)/1e6::real as area,SUM(mean*area)/1e9*%5.3f::real as totalGt,SUM(mean*area)/SUM(area)*%5.3f::real as totalkgm2,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/1e9*%5.3f)^2 + (%5.3f)^2)^0.5::real as errGt,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/SUM(area)*%5.3f)^2+(%5.3f)^2)^0.5::real as errkgm2 FROM %s GROUP BY gltype,surveyed;" % (density,density,density_err,density,density, acrossgl_err,density_err,density,density,acrossgl_err,tablename))
+    out['bytype'] =        GetSqlData("SELECT gltype,           SUM(area)/1e6::real as area,SUM(mean*area)/1e9*%5.3f::real as totalGt,SUM(mean*area)/SUM(area)*%5.3f::real as totalkgm2,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/1e9*%5.3f)^2 + (%5.3f)^2)^0.5::real as errGt,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/SUM(area)*%5.3f)^2+(%5.3f)^2)^0.5::real as errkgm2 FROM %s GROUP BY gltype;" %          (density,density,density_err,density,density, acrossgl_err,density_err,density,density,acrossgl_err,tablename))
+    out['all'] =           GetSqlData("SELECT                   SUM(area)/1e6::real as area,SUM(mean*area)/1e9*%5.3f::real as totalGt,SUM(mean*area)/SUM(area)*%5.3f::real as totalkgm2,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/1e9*%5.3f)^2 + (%5.3f)^2)^0.5::real as errGt,(((((SUM(error*area)/SUM(mean*area))^2+(%5.3f/%5.3f)^2)^0.5)*SUM(mean*area)/SUM(area)*%5.3f)^2+(%5.3f)^2)^0.5::real as errkgm2 FROM %s;" %                          (density,density,density_err,density,density, acrossgl_err,density_err,density,density,acrossgl_err,tablename))
         
     if not keep_postgres_tbls:remove_extrap_tables(user,tables=tablename)
 
@@ -1769,7 +1769,7 @@ ARGUMENTS:
     if table==None:
         
         #LOOKING FOR TABLES THIS USER HAS CREATED.  IF THE USER HAS MORE THAN ONE TABLE OPEN THEN NUMBERS WILL INCREASE SEQUENTIALLY  THIS RETURNS THE NEXT TABLE NUMBER AVAILABLE
-        n = GetSqlData2("SELECT substring(table_name FROM 'alt_result_{user}(\d+)') FROM information_schema.tables WHERE table_name SIMILAR TO 'alt_result_{user}\d+';".format(user=user))
+        n = GetSqlData("SELECT substring(table_name FROM 'alt_result_{user}(\d+)') FROM information_schema.tables WHERE table_name SIMILAR TO 'alt_result_{user}\d+';".format(user=user))
         if n==None:table = "alt_result_{user}1".format(user=user)
         else: 
             number = N.array(n['substring']).astype(int).max()+1
@@ -1882,7 +1882,7 @@ ARGUMENTS:
     #LOOKING FOR TABLES BY THIS USER
     if type(tables)==NoneType:
         #print "SELECT table_schema, substring(table_name FROM '(alt_result_{user}\d+)') as t FROM information_schema.tables WHERE table_name SIMILAR TO 'alt_result_{user}\d+';".format(user=user)
-        t = GetSqlData2("SELECT table_schema, substring(table_name FROM '(alt_result_{user}\d+)') as t FROM information_schema.tables WHERE table_name SIMILAR TO 'alt_result_{user}\d+';".format(user=user))
+        t = GetSqlData("SELECT table_schema, substring(table_name FROM '(alt_result_{user}\d+)') as t FROM information_schema.tables WHERE table_name SIMILAR TO 'alt_result_{user}\d+';".format(user=user))
         if type(t)==NoneType:
             print "No tables by this user to delete."
             return
@@ -1895,7 +1895,7 @@ ARGUMENTS:
         else: 
             tables2=tables
             
-        schemas = GetSqlData2("SELECT table_schema FROM information_schema.tables WHERE table_name IN ('{tables}');".format(tables=tables2))['table_schema']
+        schemas = GetSqlData("SELECT table_schema FROM information_schema.tables WHERE table_name IN ('{tables}');".format(tables=tables2))['table_schema']
 
     sql = """ALTER TABLE ONLY {schema}.{table} DROP CONSTRAINT IF EXISTS {table}fkergi;
 DROP INDEX IF EXISTS {schema}.{table}geom;
@@ -1948,7 +1948,7 @@ def destable(table):
         out.append(a[last:])
         return "\n                |                 |  ".join(out)
         
-    oid=GetSqlData2("""SELECT c.oid
+    oid=GetSqlData("""SELECT c.oid
     FROM pg_catalog.pg_class c
         LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
     WHERE c.relname ~ '^(%s)$'
@@ -1956,14 +1956,14 @@ def destable(table):
     """ % table)['oid'][0]
     
     
-    des = GetSqlData2("""SELECT a.attname,
+    des = GetSqlData("""SELECT a.attname,
     pg_catalog.format_type(a.atttypid, a.atttypmod),
     pg_catalog.col_description(a.attrelid, a.attnum)
     FROM pg_catalog.pg_attribute a
     WHERE a.attrelid = '%s' AND a.attnum > 0 AND NOT a.attisdropped
     ORDER BY a.attnum;""" % oid)
     
-    tdes = GetSqlData2("""SELECT description FROM pg_description JOIN pg_class ON pg_description.objoid = pg_class.oid
+    tdes = GetSqlData("""SELECT description FROM pg_description JOIN pg_class ON pg_description.objoid = pg_class.oid
     WHERE relname = '%s' AND objsubid=0;""" % table)['description'][0]
     
     

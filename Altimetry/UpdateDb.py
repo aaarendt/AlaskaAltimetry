@@ -1,7 +1,5 @@
 import psycopg2
-import xlrd
 import re
-import unicodedata
 import numpy as N
 from time import mktime
 from datetime import datetime
@@ -9,17 +7,11 @@ from time import mktime
 import time
 import os
 import glob
-import simplekml as kml
-import subprocess
 import datetime as dtm
-from types import *
 import sys
-import ppygis
-import StringIO
-#from osgeo import osr
-
 import ConfigParser
 
+# Kilroy asks if this is needed?
 cfg = ConfigParser.ConfigParser()
 cfg.read(os.path.dirname(__file__)+'/setup.cfg')
 sys.path.append(re.sub('[/][^/]+$','',os.path.dirname(__file__)))
@@ -130,8 +122,8 @@ def import_lamb_file_to_db(lambfile,db):
     
     try:
         #print 'SELECT gid FROM glnames WHERE name = %s' % data['name']
-        #print str(GetSqlData2("SELECT gid FROM glnames WHERE name = '%s'" % data['name'])['gid'][0])
-        data['glid'] = str(GetSqlData2("SELECT gid FROM glnames WHERE name = '%s'" % data['name'])['gid'][0])
+        #print str(GetSqlData("SELECT gid FROM glnames WHERE name = '%s'" % data['name'])['gid'][0])
+        data['glid'] = str(GetSqlData("SELECT gid FROM glnames WHERE name = '%s'" % data['name'])['gid'][0])
     except:
         print "%s not used because not in glnames." % lambfile
         return
